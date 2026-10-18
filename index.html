@@ -48,7 +48,7 @@ body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.wrap{flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding-left:max(18px,env(safe-area-inset-left,0px),calc((100% - 30rem)/2 + 18px));padding-right:max(18px,env(safe-area-inset-right,0px),calc((100% - 30rem)/2 + 18px));padding-block:14px 32px}
+.wrap{flex:1 1 auto;min-height:0;width:100%;overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding-left:max(18px,env(safe-area-inset-left,0px),calc((100% - 30rem)/2 + 18px));padding-right:max(18px,env(safe-area-inset-right,0px),calc((100% - 30rem)/2 + 18px));padding-block:14px 32px}
 .wrap:has(+ .tabs[hidden]){padding-bottom:calc(32px + env(safe-area-inset-bottom,0px))}
 #view{gap:18px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 14px}
@@ -130,6 +130,9 @@ p{margin:0}
 .optl{font-weight:500;color:var(--muted);font-size:.78rem}
 .hint{font-size:.78rem;color:var(--muted);line-height:1.4;margin:0}
 .hint.err{color:var(--warn)}
+/* intake action bar: stays at the bottom of the screen while the form scrolls behind it */
+.actbar{position:sticky;bottom:calc(-32px - env(safe-area-inset-bottom,0px));z-index:3;display:flex;flex-direction:column;gap:6px;margin-top:4px;margin-bottom:calc(-32px - env(safe-area-inset-bottom,0px));padding:12px 0 calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);box-shadow:0 -1px 0 var(--line),0 0 0 100vmax var(--bg);clip-path:inset(-1px -100vmax 0)}
+.actbar .btn.ghost{min-height:34px}
 .needbox{margin:0;padding:12px 14px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:.88rem;font-weight:500}
 .needbox.ok{background:var(--accent-soft);color:var(--accent)}
 .btn.primary.dim{opacity:.5}
@@ -616,6 +619,11 @@ en:{
   'me.need':v=>`To continue, fill in: ${v.list}`,'me.ready':'All set. Tap Next to continue.','me.l.height':'Height',
   'se.sync.phone':'Your log is saved on this phone, in this browser. Export a backup now and then, and import it if you switch phones.',
   'ex.shared':'Backup ready. Save it to Files or send it to yourself.',
+  'se.theme':'Appearance','se.theme.auto':'Device','se.theme.light':'Light','se.theme.dark':'Dark','se.theme.p':'Device follows your phone’s light or dark setting.',
+  'sk.setup.h':'Skip this for now?','sk.setup.p':'Your details let us set your protein and water targets and fit your workout plan to you. You can skip for now and add them anytime in Settings.',
+  'sk.setup.back':'Go back and fill it in','sk.go':'Skip for now',
+  'sk.test.h':'Skip the starting test?','sk.test.p':"The starting test shows what you can do today, so we can build workouts that fit your starting abilities. You can skip for now, start with a gentle plan, and take the test anytime from Settings when you're ready.",
+  'sk.test.back':'Take the test now','se.take':'Take the starting test',
   'gl.nextStep':'Next skill step','gl.thisWeek':'This week','gl.lastWeek':'Last week','gl.week':'week','gl.month':'month','gl.year':'year',
   'gl.eyebrow':v=>`${v.p} at a glance`,'gl.onTrack':"You're on the right track. Here's the proof:",'gl.see':v=>`See your ${v.k} ›`,
   'gl.fresh.week':'Fresh week, fresh start. One session this week counts.','gl.fresh.month':'New month, fresh start. One session is all it takes.','gl.fresh.year':'Every year starts with one session.',
@@ -953,6 +961,11 @@ zh:{
   'me.need':v=>`继续之前，请填写：${v.list}`,'me.ready':'都填好了，点「下一步」继续。','me.l.height':'身高',
   'se.sync.phone':'你的记录保存在这部手机的浏览器里。偶尔导出一份备份；换手机时导入即可。',
   'ex.shared':'备份已准备好，可以存到「文件」或发给自己。',
+  'se.theme':'外观','se.theme.auto':'跟随设备','se.theme.light':'浅色','se.theme.dark':'深色','se.theme.p':'「跟随设备」会按手机的浅色或深色模式显示。',
+  'sk.setup.h':'先跳过吗？','sk.setup.p':'这些信息能帮我们设定你的蛋白质和饮水目标，让训练计划更适合你。你可以先跳过，之后随时在设置里补上。',
+  'sk.setup.back':'返回填写','sk.go':'先跳过',
+  'sk.test.h':'跳过起点测试吗？','sk.test.p':'起点测试能了解你现在的能力，让我们按你的起点来设计训练。你可以先跳过，从温和的计划开始，准备好后随时在设置里做测试。',
+  'sk.test.back':'现在就做测试','se.take':'做起点测试',
   'gl.nextStep':'下一个技能步骤','gl.thisWeek':'本周','gl.lastWeek':'上周','gl.week':'周','gl.month':'月','gl.year':'年',
   'gl.eyebrow':v=>`${v.p}一览`,'gl.onTrack':'你走在正确的路上。证据在这里：','gl.see':v=>`查看本${v.k} ›`,
   'gl.fresh.week':'新的一周，新的开始。这周练一次就算数。','gl.fresh.month':'新的一个月，新的开始。只要练一次就好。','gl.fresh.year':'每一年都从一次训练开始。',
@@ -1792,8 +1805,6 @@ function baseSteps(){
   const rope = cardioMode() === 'rope';
   const metric = S.state.settings.units === 'km';
   return [
-    {k:'me', fields:[{id:'name', kind:'text', optional:true}, {id:'age', kind:'num'}, {id:'weight', kind:'num'}, {id:'meals', kind:'num'},
-      ...(metric ? [{id:'heightCm', kind:'num'}] : [{id:'heightFt', kind:'num'}, {id:'heightIn', kind:'num', optional:true}])]},
     {k:'push', fig:'pu-full', fields:[{id:'pushFull', kind:'reps'}, {id:'pushKnee', kind:'reps', optional:true}]},
     {k:'hang', fig:'pl-hang', fields:[{id:'hang', kind:'hold'}, {id:'pullups', kind:'reps', optional:true}, {id:'rows', kind:'reps', optional:true}]},
     {k:'dip', fig:'dp-bench', fields:[{id:'benchDips', kind:'reps'}, {id:'support', kind:'hold', optional:true}]},
@@ -1856,6 +1867,13 @@ function loadActive(){
   try { const r = localStorage.getItem(LS_ACTIVE); if (r){ W = JSON.parse(r); if (!W.plan || !W.f || (W.plan.type !== 'run' && !W.logs) || (W.plan.type === 'run' && !W.plan.segments)) W = null; else { if (W.run) W.run.segResume = null; W.hold = null; W.warmUntil = null; } } } catch(e){ W = null; }
 }
 function toast(msg){ const el = $('#toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 2600); }
+/* appearance: 'auto' follows the device; light/dark set data-theme, which the colour tokens key off */
+function applyTheme(){
+  const th = S.state.settings.theme || 'auto', root = document.documentElement;
+  if (th === 'light' || th === 'dark') root.dataset.theme = th; else delete root.dataset.theme;
+  const bg = getComputedStyle(document.body).backgroundColor;
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.content = bg; });
+}
 function applyLang(){
   const p = S.state.settings.lang || 'auto';
   if (p === 'en' || p === 'zh') LANG = p;
@@ -1912,6 +1930,7 @@ function renderTabs(){
   const g = $('#gearbtn'); if (g){ g.classList.toggle('on', tab === 'settings'); g.setAttribute('aria-label', t('tab.settings')); }
 }
 function render(){
+  applyTheme();
   renderTabs();
   const v = $('#view');
   $('#gearbtn').hidden = intakeLocked();
@@ -1933,7 +1952,7 @@ function viewOnboard(){
   <div class="whybox"><b>${t('bl.why.h')}</b><p class="small">${t('bl.why.p')}</p></div>
   <section class="card hero">
     <button class="btn primary big" data-a="base-start">${t('ob.start')}</button>
-    <button class="btn ghost" data-a="base-skip">${t('su.later')}</button>
+    <button class="btn ghost" data-a="skip-ask" data-kind="test" data-go="base-skip">${t('su.later')}</button>
   </section>
   <details class="more"><summary><span>${t('ob.list')}</span><span class="chev">›</span></summary>
     <div class="card" style="margin-top:12px"><div class="list">${baseSteps().map((b,i) => `<div class="li"><span class="n">${i+1}</span><div class="body"><div class="t">${t('b.'+b.k+'.t')}</div></div></div>`).join('')}</div></div>
@@ -1961,14 +1980,13 @@ function viewSetup(){
     <p class="tiny muted">${t('su.stay.note')}</p></div>`;
   if (k === 'done') body = `<p class="big">${t('su.done.h')}</p><p class="muted">${t('su.done.p')}</p>
     <div class="whybox"><b>${t('bl.why.h')}</b><p class="small">${t('bl.why.p')}</p></div>
-    <button class="btn primary big two" data-a="su-test"><span>${t('su.test2')}</span><small>${t('su.mins')}</small></button><button class="btn" data-a="su-later">${t('su.later')}</button>`;
+    <button class="btn primary big two" data-a="su-test"><span>${t('su.test2')}</span><small>${t('su.mins')}</small></button><button class="btn" data-a="skip-ask" data-kind="test" data-go="su-later">${t('su.later')}</button>`;
   return `<section class="setup">
     <div class="row between"><div class="dotsrow" style="flex:1">${SETUP_STEPS.map((_, n) => `<i class="${n <= i ? 'd' : ''}"></i>`).join('')}</div>
-      ${k !== 'done' ? `<button class="btn ghost" data-a="su-finish">${t('su.skipAll')}</button>` : ''}</div>
+      ${k !== 'done' ? `<button class="btn ghost" data-a="skip-ask" data-kind="setup" data-go="su-finish">${t('su.skipAll')}</button>` : ''}</div>
     ${body}
-    ${k === 'me' ? `<p id="me-need" class="needbox" role="status" aria-live="polite"></p>` : ''}
-    ${k !== 'done' ? `<div class="row">${i > 0 ? `<button class="btn" data-a="su-go" data-v="-1">${t('su.back')}</button>` : ''}<button class="btn primary" ${k === 'me' ? 'id="me-next"' : ''} style="flex:1" data-a="su-go" data-v="1">${t('su.next')}</button></div>
-      ${i > 0 ? `<button class="btn ghost" data-a="su-go" data-v="1">${t('su.skip')}</button>` : ''}` : ''}
+    ${k !== 'done' ? `<div class="actbar">${k === 'me' ? `<p id="me-need" class="needbox" role="status" aria-live="polite"></p>` : ''}<div class="row">${i > 0 ? `<button class="btn" data-a="su-go" data-v="-1">${t('su.back')}</button>` : ''}<button class="btn primary" ${k === 'me' ? 'id="me-next"' : ''} style="flex:1" data-a="su-go" data-v="1">${t('su.next')}</button></div>
+      ${i > 0 ? (k === 'me' ? `<button class="btn ghost" data-a="skip-ask" data-kind="setup" data-go="su-go" data-v="1">${t('su.skip')}</button>` : `<button class="btn ghost" data-a="su-go" data-v="1">${t('su.skip')}</button>`) : ''}</div>` : ''}
   </section>`;
 }
 function viewBaseline(){
@@ -1980,8 +1998,8 @@ function viewBaseline(){
     <section class="card"><div class="list">
       ${[...STR_ORDER, cardioMode()].map(tr => `<div class="li"><div class="body"><div class="row between"><span class="eyebrow">${t('tr.'+tr)}</span><span class="tiny muted">${esc(why[tr])}</span></div><div class="t">${esc(exName(stepOf(tr, L[tr]).id))}</div></div></div>`).join('')}
     </div></section>
-    <button class="btn primary big" data-a="base-save">${t('b.res.go')}</button>
-    <button class="btn ghost" data-a="base-back">${t('b.res.change')}</button>`;
+    <div class="actbar"><button class="btn primary big" data-a="base-save">${t('b.res.go')}</button>
+    <button class="btn ghost" data-a="base-back">${t('b.res.change')}</button></div>`;
   }
   const step = BASE_STEPS[B.i];
   const timerRunning = B.timer && B.timer.start;
@@ -2003,10 +2021,10 @@ function viewBaseline(){
         ${B.hold && B.hold.k===f.id ? `<div class="clock ready" id="baseHold">3</div><p class="small muted" id="baseHoldLbl" style="text-align:center">${t('hold.ready')}</p>` : ''}
       </div>`).join('')}
   </section>
-  <div class="row">
+  <div class="actbar"><div class="row">
     ${B.i > 0 ? `<button class="btn" data-a="base-prev">${t('b.back')}</button>` : ''}
     <button class="btn primary" style="flex:1" data-a="base-next">${B.i === BASE_STEPS.length-1 ? t('b.last') : t('b.next')}</button>
-  </div>`;
+  </div></div>`;
 }
 
 /* ---- today ---- */
@@ -2756,7 +2774,7 @@ function sessionDetail(s, inDetails){
 /* ---- settings ---- */
 function viewSettings(){
   const st = S.state.settings;
-  const segBtns = (key, opts) => `<div class="seg">${opts.map(([v,l]) => `<button class="${String(st[key])===String(v)?'on':''}" data-a="set" data-k="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const segBtns = (key, opts) => `<div class="seg">${opts.map(([v,l]) => `<button class="${String(st[key] ?? (key === 'theme' ? 'auto' : ''))===String(v)?'on':''}" data-a="set" data-k="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const syncLine = sync.status === 'synced' || sync.status === 'saving' ? t('se.sync.ok') : sync.status === 'error' ? t('se.sync.err',{c:sync.code ? ' (' + esc(sync.code) + ')' : ''}) : window.STEADY_STANDALONE ? t('se.sync.phone') : t('se.sync.local');
   return `
   <section class="hello"><h1>${t('se.h')}</h1></section>
@@ -2767,6 +2785,7 @@ function viewSettings(){
       return meForm(v, metric); })()}
   </section>
   <section class="card stack"><h3>${t('se.units')}</h3>${segBtns('units', [['mi', t('se.miL')], ['km', t('se.kmL')]])}<p class="tiny muted">${t('se.unitsP')}</p></section>
+  <section class="card stack"><h3>${t('se.theme')}</h3>${segBtns('theme', [['auto', t('se.theme.auto')], ['light', t('se.theme.light')], ['dark', t('se.theme.dark')]])}<p class="tiny muted">${t('se.theme.p')}</p></section>
   <section class="card stack"><h3>${t('se.lang')}</h3>${segBtns('lang', [['auto', t('se.lang.auto')], ['en','English'], ['zh','中文']])}</section>
   <section class="card stack">
     <h3>${t('se.cardio')}</h3>
@@ -2799,7 +2818,7 @@ function viewSettings(){
   </section>
   <section class="card stack">
     <h3>${t('se.over')}</h3>
-    <button class="btn full" data-a="base-start">${t('se.retake')}</button>
+    <button class="btn full" data-a="base-start">${t(S.sessions.some(x => x.type === 'baseline') ? 'se.retake' : 'se.take')}</button>
     <button class="btn full danger" data-a="reset">${ui.resetArm ? t('se.erasesure') : t('se.erase')}</button>
     <p class="tiny muted">${t('se.erasep')}</p>
   </section>`;
@@ -3102,6 +3121,15 @@ A['su-test'] = () => { S.state.setupDone = true; commit(); A['base-start'](); };
 A['su-later'] = () => { S.state.setupDone = true; commit(); A['base-skip'](); };
 /* check-in sheet */
 A.ci = el => { ui.ci = el.dataset.v; ciSheet(); };
+/* skipping part of intake asks first: kind 'setup' (details) or 'test' (starting test); data-go is the action to run if they still skip */
+A['skip-ask'] = el => {
+  const kind = el.dataset.kind, go = el.dataset.go, v = el.dataset.v || '';
+  const back = kind === 'test' ? `<button class="btn primary big" data-a="${go === 'su-later' ? 'su-test' : 'base-start'}">${t('sk.test.back')}</button>` : `<button class="btn primary big" data-a="close-ov">${t('sk.setup.back')}</button>`;
+  $('#ov').innerHTML = `<div class="ov" data-a="close-ov"><div class="sheet stack" data-stop="1" role="alertdialog" aria-label="${t('sk.' + kind + '.h')}">
+    <span class="appicon" aria-hidden="true"></span><h2>${t('sk.' + kind + '.h')}</h2><p>${t('sk.' + kind + '.p')}</p>
+    ${back}<button class="btn ghost" data-a="skip-do" data-go="${go}" data-v="${v}">${t('sk.go')}</button></div></div>`;
+};
+A['skip-do'] = el => { $('#ov').innerHTML = ''; A[el.dataset.go](el); };
 A['cg-ok'] = () => { S.state.congrats = false; commit(); render(); };
 A['si-never'] = () => { try { localStorage.setItem('steady-nosignin-v1', '1'); } catch(e){} $('#ov').innerHTML = ''; };
 A['rest-train'] = () => restAlert();
