@@ -1,5 +1,5 @@
 // Steady offline cache. Network first for the app page, so updates show up when online.
-const CACHE = 'steady-20261018192713';
+const CACHE = 'steady-20261018193132';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'favicon.svg'];
 
 self.addEventListener('install', e => {
